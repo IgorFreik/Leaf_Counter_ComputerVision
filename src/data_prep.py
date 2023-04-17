@@ -9,6 +9,7 @@ import torch
 import random
 from typing import *
 import zipfile
+from PIL import Image
 
 
 def download_data_h5():
@@ -83,9 +84,9 @@ class LeafDataset(Dataset):
         # Positional augmentaion
         seed = random.randint(0, 2 ** 32)
         self._set_seed(seed)
-        aug_img = self.pos_transforms(np.swapaxes(self.images[idx], 0, 2))
+        aug_img = self.pos_transforms(self.images[idx].transpose(1, 2, 0))
         self._set_seed(seed)
-        aug_mask = self.pos_transforms(np.expand_dims(self.masks[idx], 2))
+        aug_mask = torch.transpose(self.pos_transforms(np.expand_dims(self.masks[idx], 2)), 1, 2)
 
         # Coloring augmentaion
         if self.color_transforms:
@@ -100,7 +101,7 @@ def get_loaders(lst_imgs: List, lst_masks: List, lst_counts: List, batch_size=4,
 
     positional_transforms = transforms.Compose([transforms.ToTensor(),
                                                 transforms.Resize((480, 480)),
-                                                transforms.RandomRotation(90),
+                                                transforms.RandomRotation(30),
                                                 transforms.RandomHorizontalFlip(),
                                                 transforms.RandomVerticalFlip()
                                                 ])
@@ -150,5 +151,9 @@ def prepare_data():
     # download_data_h5()
     imgs, counts, masks = h5_to_sep_lists()
     train_dl, test_dl = get_loaders(imgs, counts, masks)
-    show_dataset_example(train_dl)
+    # print('> Showing example')
+    save_hd_img(train_dl)
+    # show_dataset_example(train_dl)
+    # print('> Returning loaders')
+
     return train_dl, test_dl

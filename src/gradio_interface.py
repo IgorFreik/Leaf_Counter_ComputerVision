@@ -38,7 +38,7 @@ def un_pad(x, pad):
     return x
 
 
-def predict_leaf_number(model, img):
+def predict_leaf_number(model, im):
     """
     Predicts the number of leaves on an image.
 
@@ -47,13 +47,14 @@ def predict_leaf_number(model, img):
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-    img = np.moveaxis(img, [2], [0]) / 255
+    img = np.moveaxis(im, [2], [0]) / 255
     preprocessing = transforms.Compose([torch.Tensor,
                                         transforms.Resize((480, 480))])
 
     img = preprocessing(img).unsqueeze(0).to(device)
     mask = model.segmenter(img)
-    return int(model.counter(torch.cat((img, mask), axis=1)).item())
+    leaf_num = int(model.counter(torch.cat((img, mask), axis=1)).item())
+    return leaf_num
 
 
 def show_web_interface(model):
@@ -69,19 +70,17 @@ def show_web_interface(model):
             im = gr.Image()
             txt = gr.Textbox(value="", label="Output")
 
+        predict_fn = lambda img: predict_leaf_number(model, img)
+
         btn = gr.Button(value="Count leafs")
-        btn.click(predict_leaf_number, inputs=[im], outputs=[txt])
+        btn.click(predict_fn, inputs=[im], outputs=txt)
 
         gr.Markdown("## Image Examples")
 
-        predict_fn = lambda img: predict_leaf_number(model, img)
-
         gr.Examples(
-            examples=["./examples/leaf_im.png"],
+            examples=["../examples/leaf_im_big.png"],
             inputs=im,
             outputs=txt,
-            fn=predict_fn,
-            cache_examples=True,
+            fn=predict_fn
         )
-
     demo.launch()
